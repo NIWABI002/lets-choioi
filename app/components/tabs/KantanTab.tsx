@@ -212,30 +212,40 @@ export default function KantanTab() {
           </span>
         </div>
 
-        {/* カテゴリー名 */}
-        <div style={{ textAlign: 'center', marginBottom: 8 }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color: C.dark, fontFamily: 'Nunito, sans-serif' }}>
-            {CAT_EMOJI[currentCat]} {currentCat}
-          </span>
-        </div>
-
-        {/* ドットインジケーター */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 5, alignItems: 'center' }}>
-          {exclamationCategories.map((_, i) => (
-            <div
-              key={i}
-              onClick={() => goToPage(i)}
-              style={{
-                width: i === activePage ? 20 : 6,
-                height: 6,
-                borderRadius: 3,
-                background: i === activePage ? C.red : C.gray,
-                opacity: i === activePage ? 1 : 0.3,
-                transition: 'width 0.3s ease, background 0.3s ease, opacity 0.3s ease',
-                cursor: 'pointer',
-              }}
-            />
-          ))}
+        {/* カテゴリーピルバー */}
+        <div style={{
+          display: 'flex',
+          gap: 6,
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          paddingBottom: 2,
+        }}>
+          {exclamationCategories.map((cat, i) => {
+            const active = i === activePage;
+            return (
+              <button
+                key={cat}
+                onClick={() => goToPage(i)}
+                style={{
+                  flexShrink: 0,
+                  padding: '5px 12px',
+                  borderRadius: 20,
+                  border: active ? 'none' : `1.5px solid ${C.gray}`,
+                  background: active ? C.red : 'transparent',
+                  color: active ? '#fff' : C.gray,
+                  fontSize: 12,
+                  fontWeight: active ? 800 : 500,
+                  fontFamily: 'Nunito, sans-serif',
+                  cursor: 'pointer',
+                  opacity: active ? 1 : 0.5,
+                  transition: 'all 0.25s ease',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {CAT_EMOJI[cat]} {cat}
+              </button>
+            );
+          })}
         </div>
       </div>
 
