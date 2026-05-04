@@ -15,7 +15,7 @@ export default function BottomNav({ tab, setTab }: BottomNavProps) {
   const tabs: { id: TabId; label: string; icon: (active: boolean) => React.ReactNode }[] = [
     {
       id: 'kantan',
-      label: '感嘆',
+      label: 'ベトナム',
       icon: (active) => (
         <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
           <path d="M11 2C8 2 5 5 5 8c0 4 6 12 6 12s6-8 6-12c0-3-2.5-6-6-6z" fill={active ? C.red : 'none'} stroke={active ? C.red : C.gray} strokeWidth="1.8" />
