@@ -86,7 +86,7 @@ function CategoryPage({
         overflowY: 'scroll',
         scrollSnapType: 'y mandatory',
         scrollbarWidth: 'none',
-        touchAction: 'pan-y',
+        touchAction: 'auto',
       }}
     >
       {phrases.map((phrase, i) => {

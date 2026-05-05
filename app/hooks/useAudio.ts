@@ -15,7 +15,6 @@ export function useTTS() {
     utterance.rate = 0.85;
     utterance.pitch = 1.0;
 
-    // prefer a native voice for the target language
     const voices = window.speechSynthesis.getVoices();
     const native = voices.find(
       (v) => v.lang.startsWith(lang.split('-')[0]) && !v.localService === false
@@ -36,20 +35,45 @@ export function useTTS() {
   return { isPlaying, speak, stop };
 }
 
+// iOS Safari は audio/webm 非対応なので対応フォーマットを検出する
+function getSupportedMimeType(): string {
+  const types = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/mp4',
+    'audio/ogg;codecs=opus',
+  ];
+  for (const type of types) {
+    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)) {
+      return type;
+    }
+  }
+  return ''; // ブラウザデフォルトに任せる
+}
+
 export function useRecorder() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream);
+      const mimeType = getSupportedMimeType();
+      const mr = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
       chunksRef.current = [];
       mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       mr.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        // blob の type は実際に使った mimeType に合わせる
+        const blobType = mr.mimeType || mimeType || 'audio/mp4';
+        const blob = new Blob(chunksRef.current, { type: blobType });
+        // 前の URL を解放してから新しいものをセット
+        if (recordingUrl) URL.revokeObjectURL(recordingUrl);
         const url = URL.createObjectURL(blob);
         setRecordingUrl(url);
         stream.getTracks().forEach((t) => t.stop());
@@ -61,7 +85,7 @@ export function useRecorder() {
     } catch {
       setIsRecording(false);
     }
-  }, []);
+  }, [recordingUrl]);
 
   const stopRecording = useCallback(() => {
     mediaRecorderRef.current?.stop();
@@ -69,8 +93,16 @@ export function useRecorder() {
 
   const playRecording = useCallback(() => {
     if (!recordingUrl) return;
+    // 前の再生を止めてから新しく再生
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
     const audio = new Audio(recordingUrl);
-    audio.play();
+    audioRef.current = audio;
+    audio.play().catch((err) => {
+      console.warn('録音再生エラー:', err);
+    });
   }, [recordingUrl]);
 
   return { isRecording, recordingUrl, startRecording, stopRecording, playRecording };

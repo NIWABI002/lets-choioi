@@ -84,7 +84,7 @@ function ScenarioPage({ conv, isActivePage }: { conv: typeof mixConversations[nu
         scrollSnapAlign: 'start',
         overflowY: 'auto',
         scrollbarWidth: 'none',
-        touchAction: 'pan-y',
+        touchAction: 'auto',
         padding: '8px 20px 24px',
       }}
     >

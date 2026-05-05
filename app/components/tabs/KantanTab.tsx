@@ -77,7 +77,7 @@ function CategoryPage({
         overflowY: 'scroll',
         scrollSnapType: 'y mandatory',
         scrollbarWidth: 'none',
-        touchAction: 'pan-y',  // 縦タッチのみ受け付けて横は親に渡す
+        touchAction: 'auto',
       }}
     >
       {phrases.map((phrase, i) => {
