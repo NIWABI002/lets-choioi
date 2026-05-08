@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { exclamationPhrases, exclamationCategories, ExclamationPhrase } from '@/app/data/phrases';
-import { useTTS, useRecorder } from '@/app/hooks/useAudio';
+import { useTTS, useRecorder, Lang } from '@/app/hooks/useAudio';
 import Badge from '@/app/components/Badge';
 import AudioButtons from '@/app/components/AudioButtons';
 
@@ -16,35 +16,41 @@ const CAT_EMOJI: Record<string, string> = {
   '感謝': '🙏', '苦笑': '😮‍💨', '拒否': '🙅', 'スラング': '🔥',
 };
 
-// ── 縦スクロールカードページ ──────────────────────
+// ── 縦スクロールカードページ（activeCardを自己管理）──
 interface PageProps {
   phrases: ExclamationPhrase[];
   isActivePage: boolean;
-  activeCard: number;
-  onCardChange: (i: number) => void;
+  onActiveCard: (idx: number, total: number, phrase: ExclamationPhrase) => void;
   isPlaying: boolean;
   isRecording: boolean;
   hasRecording: boolean;
-  onPlay: () => void;
+  speak: (text: string, lang: Lang) => void;
+  stop: () => void;
   onRecord: () => void;
   onPlayRecording: () => void;
-  stop: () => void;
 }
 
 function CategoryPage({
-  phrases, isActivePage, activeCard, onCardChange,
+  phrases, isActivePage, onActiveCard,
   isPlaying, isRecording, hasRecording,
-  onPlay, onRecord, onPlayRecording, stop,
+  speak, stop, onRecord, onPlayRecording,
 }: PageProps) {
+  const [activeCard, setActiveCard] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // ページが非アクティブになったらスクロールをリセット
+  // 非アクティブになったらリセット
   useEffect(() => {
-    if (!isActivePage && scrollRef.current) {
-      scrollRef.current.scrollTop = 0;
+    if (!isActivePage) {
+      setActiveCard(0);
+      if (scrollRef.current) scrollRef.current.scrollTop = 0;
     }
   }, [isActivePage]);
+
+  // アクティブカードを親に通知（ヘッダーカウンター用）
+  useEffect(() => {
+    if (isActivePage) onActiveCard(activeCard, phrases.length, phrases[activeCard]);
+  }, [isActivePage, activeCard, phrases, onActiveCard]);
 
   // 縦スナップ: アクティブカード検出
   useEffect(() => {
@@ -53,11 +59,13 @@ function CategoryPage({
     itemRefs.current = itemRefs.current.slice(0, phrases.length);
     const observer = new IntersectionObserver(
       (entries) => {
-        if (!isActivePage) return;
         entries.forEach((entry) => {
           if (entry.intersectionRatio >= 0.55) {
             const idx = itemRefs.current.indexOf(entry.target as HTMLDivElement);
-            if (idx !== -1) { onCardChange(idx); stop(); }
+            if (idx !== -1) {
+              setActiveCard(idx);
+              if (isActivePage) stop();
+            }
           }
         });
       },
@@ -65,7 +73,15 @@ function CategoryPage({
     );
     itemRefs.current.forEach((el) => el && observer.observe(el));
     return () => observer.disconnect();
-  }, [phrases, isActivePage, onCardChange, stop]);
+  }, [phrases, isActivePage, stop]);
+
+  // このページ内のアクティブフレーズを自分で計算
+  const activePhrase = phrases[activeCard];
+
+  const handlePlay = () => {
+    if (isPlaying) { stop(); return; }
+    if (activePhrase) speak(activePhrase.viet, 'vi-VN');
+  };
 
   return (
     <div
@@ -81,7 +97,7 @@ function CategoryPage({
       }}
     >
       {phrases.map((phrase, i) => {
-        const isActive = i === activeCard && isActivePage;
+        const isActive = i === activeCard;
         return (
           <div
             key={`${phrase.viet}-${i}`}
@@ -108,12 +124,10 @@ function CategoryPage({
               position: 'relative', overflow: 'hidden',
             }}>
               <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: C.yellow, opacity: 0.12 }} />
-
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
                 <Badge label={phrase.category} />
                 <span style={{ fontSize: 26 }}>{phrase.emoji}</span>
               </div>
-
               <div style={{ fontSize: 46, fontWeight: 900, color: C.red, fontFamily: 'Nunito, sans-serif', lineHeight: 1.1, marginBottom: 6, letterSpacing: -0.5 }}>
                 {phrase.viet}
               </div>
@@ -123,20 +137,18 @@ function CategoryPage({
               <div style={{ fontSize: 18, fontWeight: 600, color: C.dark, fontFamily: '"Noto Sans", sans-serif', lineHeight: 1.5, marginBottom: isActive ? 20 : 0 }}>
                 {phrase.jp}
               </div>
-
               {isActive && (
                 <AudioButtons
-                  isPlaying={isPlaying}
-                  isRecording={isRecording}
+                  isPlaying={isPlaying && isActivePage}
+                  isRecording={isRecording && isActivePage}
                   hasRecording={hasRecording}
-                  onPlay={onPlay}
+                  onPlay={handlePlay}
                   onRecord={onRecord}
                   onPlayRecording={onPlayRecording}
                 />
               )}
             </div>
-
-            {isActive && (
+            {isActive && isActivePage && (
               <div style={{ marginTop: 10, fontSize: 11, color: C.gray, fontFamily: 'Nunito, sans-serif', opacity: 0.6 }}>
                 ↑↓ スワイプで切り替え
               </div>
@@ -148,23 +160,38 @@ function CategoryPage({
   );
 }
 
+// ── カテゴリ別フレーズリスト（参照を固定してobserver再発火を防ぐ）──
+const phrasesByCategory: Record<string, ExclamationPhrase[]> = Object.fromEntries(
+  exclamationCategories.map((cat) => [
+    cat,
+    cat === 'すべて'
+      ? exclamationPhrases
+      : exclamationPhrases.filter((p) => p.category === cat),
+  ])
+);
+
 // ── メインタブ ────────────────────────────────────
-export default function KantanTab() {
+interface KantanTabProps { onStartQuiz?: (phrase: ExclamationPhrase) => void; }
+
+export default function KantanTab({ onStartQuiz }: KantanTabProps = {}) {
   const [activePage, setActivePage] = useState(0);
-  const [activeCard, setActiveCard] = useState(0);
+  const [headerCard, setHeaderCard] = useState(0);
+  const [headerTotal, setHeaderTotal] = useState(exclamationPhrases.length);
+  const [activePhrase, setActivePhrase] = useState<ExclamationPhrase>(exclamationPhrases[0]);
   const hScrollRef = useRef<HTMLDivElement>(null);
   const activePageRef = useRef(0);
 
   const { isPlaying, speak, stop } = useTTS();
   const { isRecording, recordingUrl, startRecording, stopRecording, playRecording } = useRecorder();
 
-  const currentCat = exclamationCategories[activePage];
-  const filtered = currentCat === 'すべて'
-    ? exclamationPhrases
-    : exclamationPhrases.filter((p) => p.category === currentCat);
-  const activePhrase = filtered[activeCard];
+  const handleRecord = () => { isRecording ? stopRecording() : startRecording(); };
 
-  // 横スクロール位置からアクティブページを検出
+  const handleActiveCard = useCallback((idx: number, total: number, phrase: ExclamationPhrase) => {
+    setHeaderCard(idx);
+    setHeaderTotal(total);
+    setActivePhrase(phrase);
+  }, []);
+
   useEffect(() => {
     const el = hScrollRef.current;
     if (!el) return;
@@ -174,7 +201,6 @@ export default function KantanTab() {
       if (page !== activePageRef.current) {
         activePageRef.current = page;
         setActivePage(page);
-        setActiveCard(0);
         stop();
       }
     };
@@ -188,15 +214,11 @@ export default function KantanTab() {
     };
   }, [stop]);
 
-  const handlePlay = () => {
-    if (isPlaying) { stop(); return; }
-    if (activePhrase) speak(activePhrase.viet, 'vi-VN');
-  };
-  const handleRecord = () => { isRecording ? stopRecording() : startRecording(); };
-
   const goToPage = (i: number) => {
     hScrollRef.current?.scrollTo({ left: i * (hScrollRef.current.clientWidth), behavior: 'smooth' });
   };
+
+  const currentCat = exclamationCategories[activePage];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, background: C.offwhite }}>
@@ -207,19 +229,28 @@ export default function KantanTab() {
           <span style={{ fontSize: 13, fontWeight: 800, color: C.red, fontFamily: 'Nunito, sans-serif', letterSpacing: 0.5, opacity: 0.7 }}>
             {"Let's Chời ơi"}
           </span>
-          <span style={{ fontSize: 12, color: C.gray, fontFamily: 'Nunito, sans-serif' }}>
-            {activeCard + 1} / {filtered.length}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 12, color: C.gray, fontFamily: 'Nunito, sans-serif' }}>
+              {headerCard + 1} / {headerTotal}
+            </span>
+            {onStartQuiz && (
+              <button
+                onClick={() => onStartQuiz(activePhrase)}
+                style={{
+                  padding: '4px 10px', borderRadius: 20, border: 'none',
+                  background: C.red, color: '#fff',
+                  fontSize: 11, fontWeight: 800, fontFamily: 'Nunito, sans-serif',
+                  cursor: 'pointer', letterSpacing: 0.5,
+                }}
+              >
+                クイズ
+              </button>
+            )}
+          </div>
         </div>
 
         {/* カテゴリーピルバー */}
-        <div style={{
-          display: 'flex',
-          gap: 6,
-          overflowX: 'auto',
-          scrollbarWidth: 'none',
-          paddingBottom: 2,
-        }}>
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 2 }}>
           {exclamationCategories.map((cat, i) => {
             const active = i === activePage;
             return (
@@ -227,18 +258,13 @@ export default function KantanTab() {
                 key={cat}
                 onClick={() => goToPage(i)}
                 style={{
-                  flexShrink: 0,
-                  padding: '5px 12px',
-                  borderRadius: 20,
+                  flexShrink: 0, padding: '5px 12px', borderRadius: 20,
                   border: active ? 'none' : `1.5px solid ${C.gray}`,
                   background: active ? C.red : 'transparent',
                   color: active ? '#fff' : C.gray,
-                  fontSize: 12,
-                  fontWeight: active ? 800 : 500,
-                  fontFamily: 'Nunito, sans-serif',
-                  cursor: 'pointer',
-                  opacity: active ? 1 : 0.5,
-                  transition: 'all 0.25s ease',
+                  fontSize: 12, fontWeight: active ? 800 : 500,
+                  fontFamily: 'Nunito, sans-serif', cursor: 'pointer',
+                  opacity: active ? 1 : 0.5, transition: 'all 0.25s ease',
                   whiteSpace: 'nowrap',
                 }}
               >
@@ -261,23 +287,20 @@ export default function KantanTab() {
         }}
       >
         {exclamationCategories.map((cat, pageIdx) => {
-          const phrases = cat === 'すべて'
-            ? exclamationPhrases
-            : exclamationPhrases.filter((p) => p.category === cat);
+          const phrases = phrasesByCategory[cat];
           return (
             <CategoryPage
               key={cat}
               phrases={phrases}
               isActivePage={pageIdx === activePage}
-              activeCard={pageIdx === activePage ? activeCard : 0}
-              onCardChange={setActiveCard}
+              onActiveCard={handleActiveCard}
               isPlaying={isPlaying}
               isRecording={isRecording}
               hasRecording={!!recordingUrl}
-              onPlay={handlePlay}
+              speak={speak}
+              stop={stop}
               onRecord={handleRecord}
               onPlayRecording={playRecording}
-              stop={stop}
             />
           );
         })}
