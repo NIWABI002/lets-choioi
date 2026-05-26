@@ -2,9 +2,8 @@ export default function IntroCard() {
   return (
     <div style={{
       width: '100%', height: '100%', borderRadius: 8,
-      background: 'linear-gradient(155deg, #D72840 0%, #C8102E 60%, #B3001F 100%)',
+      background: '#C8102E',
       border: '1px solid rgba(255, 218, 0, 0.45)',
-      boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.15)',
       padding: '6px 5px', position: 'relative', overflow: 'hidden',
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', textAlign: 'center',
