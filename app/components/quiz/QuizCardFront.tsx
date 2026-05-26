@@ -1,4 +1,5 @@
 import { ExclamationPhrase } from '@/app/data/phrases';
+import { PlayIcon } from '@/app/components/icons';
 
 const C = { red: '#C8102E', yellow: '#FFDA00', gray: '#888', offwhite: '#F8F7F4', dark: '#1A1A1A' };
 
@@ -26,7 +27,9 @@ export default function QuizCardFront({ phrase }: Props) {
           {phrase.ruby}
         </div>
       </div>
-      <div data-card-play style={{ width: 20, height: 20, borderRadius: '50%', background: C.offwhite, display: 'grid', placeItems: 'center', alignSelf: 'center', color: C.red, fontSize: 8 }}>▶</div>
+      <div data-card-play style={{ width: 20, height: 20, borderRadius: '50%', background: C.offwhite, display: 'grid', placeItems: 'center', alignSelf: 'center', color: C.red }}>
+        <PlayIcon size={8} />
+      </div>
     </div>
   );
 }

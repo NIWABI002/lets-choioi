@@ -1,5 +1,7 @@
 'use client';
 
+import { PlayIcon, RecordIcon, HeadphonesIcon } from '@/app/components/icons';
+
 const C = { red: '#C8102E' };
 
 interface AudioButtonsProps {
@@ -42,7 +44,7 @@ export default function AudioButtons({ isPlaying, isRecording, hasRecording, onP
             </span>
             再生中
           </>
-        ) : '▶ 再生'}
+        ) : <><PlayIcon size={11} /> 再生</>}
       </button>
 
       {/* Record */}
@@ -60,7 +62,7 @@ export default function AudioButtons({ isPlaying, isRecording, hasRecording, onP
       >
         {isRecording ? (
           <><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff', animation: 'pulse 1s ease-in-out infinite' }} />録音中</>
-        ) : '⏺ 録音'}
+        ) : <><RecordIcon size={10} /> 録音</>}
       </button>
 
       {/* Play own recording */}
@@ -79,7 +81,7 @@ export default function AudioButtons({ isPlaying, isRecording, hasRecording, onP
           }}
           title="自分の録音を再生"
         >
-          🎧
+          <HeadphonesIcon size={18} />
         </button>
       )}
     </div>

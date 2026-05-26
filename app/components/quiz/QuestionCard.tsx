@@ -1,4 +1,5 @@
 import { ExclamationPhrase } from '@/app/data/phrases';
+import { PlayIcon } from '@/app/components/icons';
 
 interface Props { phrase: ExclamationPhrase; }
 
@@ -15,7 +16,9 @@ export default function QuestionCard({ phrase }: Props) {
         <div style={{ fontFamily: 'Nunito', fontSize: 9, fontWeight: 800, color: '#888', letterSpacing: 2, textTransform: 'uppercase' as const }}>
           {phrase.category}
         </div>
-        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#F8F7F4', display: 'grid', placeItems: 'center', color: '#C8102E', fontSize: 11 }}>▶</div>
+        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#F8F7F4', display: 'grid', placeItems: 'center', color: '#C8102E' }}>
+          <PlayIcon size={11} />
+        </div>
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
         <div style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 900, color: '#C8102E', fontSize: 36, lineHeight: 1.05, letterSpacing: -0.5 }}>
