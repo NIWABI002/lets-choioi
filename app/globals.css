@@ -160,6 +160,7 @@ body {
 .pt-front-intro {
   position: absolute; inset: 0; border-radius: 8px; overflow: hidden;
   background: #C8102E; z-index: 2;
+  padding: 0 !important; /* override .pt-front > div padding */
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }

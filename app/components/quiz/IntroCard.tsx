@@ -2,7 +2,7 @@ export default function IntroCard() {
   return (
     <div style={{
       width: '100%', height: '100%', borderRadius: 8,
-      background: 'linear-gradient(155deg, #C8102E 0%, #8a0a1f 100%)',
+      background: '#C8102E',
       padding: '6px 5px', position: 'relative', overflow: 'hidden',
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', textAlign: 'center',
