@@ -160,6 +160,8 @@ body {
 .pt-front-intro {
   position: absolute; inset: 0; border-radius: 8px; overflow: hidden;
   background: #C8102E; z-index: 2;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 .pt-morphing { opacity: 1; }
 .pt-morphing .pt-caption { opacity: 0; }

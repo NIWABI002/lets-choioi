@@ -59,7 +59,7 @@ export default function PinchTransition({ cards, picked, onComplete, speed = 1, 
             const dx = col - (pickedIdx % gridCols);
             const dy = row - Math.floor(pickedIdx / gridCols);
             const dist = Math.sqrt(dx * dx + dy * dy);
-            const showIntro = isPicked && (phase === 'converging' || phase === 'exploding' || phase === 'reveal' || phase === 'morphing');
+            const showIntro = isPicked && (phase === 'exploding' || phase === 'reveal' || phase === 'morphing');
             return (
               <div
                 key={i}
